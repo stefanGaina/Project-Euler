@@ -1,5 +1,9 @@
+# VSCode settings
+.vscode
+
 # Objects
 *.o
 
 # Executables
 s0*
+s1*
