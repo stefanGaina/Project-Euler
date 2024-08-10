@@ -1,3 +1,9 @@
+# make
+# gdb s20
+# layout regs
+# br 77
+# the result is in %rax
+
 .global _start
 
 .equ TERMINATOR, 9999999
@@ -6,58 +12,72 @@
 
 _start:
 	movq %rsp, %rbp
-	subq $256 * 8, %rsp
+	subq $512 * 8, %rsp
 
-	movq $1, %rsi
-	movq $10, %rcx
-	movq $1, %r11
-	xorq %rdi, %rdi
+	movq $2, %rsi				   # factor = 2
+	movq $10, %rcx				   # DIVIDER = 10
+	xorq %r11, %r11				   # carry = 0
+	xorq %rdi, %rdi				   # offset = 0
 
-outer_loop:
-	cmpq $0, %r11
-	je no_carry
+	movq $1, (%rsp)
+	movq $TERMINATOR, 8(%rsp)
 
-	movq %r11, (%rsp, %rdi)
-	addq $8, %rdi
-	movq $TERMINATOR, (%rsp, %rdi)
+outer_loop:						   # do
+multiply_loop:					   # do
+	movq (%rsp, %rdi), %rax		   # digit = stack[offset]
+	mulq %rsi					   # digit *= factor
+	addq %r11, %rax				   # digit += carry
 
-no_carry:
-	incq %rsi
-	xorq %rdi, %rdi
-	xorq %r11, %r11
-
-inner_loop:
-	movq (%rsp, %rdi), %rax
-	mulq %rsi
-	addq %r11, %rax
+	cmpq $10, %rax				   # if 10 <= digit
+	jl else
 
 	xorq %rdx, %rdx
 	divq %rcx
+	movq %rax, %r11				   # carry  = digit / 10
+	movq %rdx, %rax				   # digit %= 10
+	jmp endif
 
-	198 * 99
-	  11502 C9 C7 + 9
+else:
+	xorq %r11, %r11				   # carry = 0
 
-	movq %rdx, (%rsp, %rdi)
-	movq %rax, %r11
+endif:
+	movq %rax, (%rsp, %rdi)		   # stack[offset] = digit
+	addq $8, %rdi				   # ++offset
 
-	addq $8, %rdi
-	cmpq $TERMINATOR, (%rsp, %rdi)
-	jne inner_loop
+	cmpq $TERMINATOR, (%rsp, %rdi) # while TERMINATOR != stack[offset]
+	jne multiply_loop
 
-	cmpq $100, %rsi
-	jne outer_loop
+carry_loop_begin:
+	cmpq $0, %r11				   # while 0 != carry
+	je carry_loop_end
 
-	xorq %rdi, %rdi
-	/* The result is in rax. */
-	#movq %r11, %rax
-	xorq %rax, %rax
+	movq %r11, %rax
+	xorq %rdx, %rdx
+	divq %rcx
+	movq %rax, %r11				   # carry /= 10
 
-digit_sum_loop:
-	movq (%rsp, %rdi), %r11
-	addq %r11, %rax
+	movq %rdx, (%rsp, %rdi)		   # stack[offset] = carry % 10
+	addq $8, %rdi				   # ++offset
 
-	addq $8, %rdi
-	cmpq $TERMINATOR, (%rsp, %rdi)
+	jmp carry_loop_begin
+
+carry_loop_end:
+	movq $TERMINATOR, (%rsp, %rdi) # stack[offset] = TERMINATOR
+	xorq %rdi, %rdi				   # offset = 0
+	incq %rsi					   # ++factor
+
+	cmpq $100, %rsi				   # while 100 >= factor
+	jle outer_loop
+
+	xorq %rdi, %rdi				   # offset = 0
+	xorq %rax, %rax				   # result = 0
+
+digit_sum_loop:					   # do
+	movq (%rsp, %rdi), %r11		   # digit = stack[offset]
+	addq %r11, %rax				   # result += digit
+	addq $8, %rdi				   # ++offset
+
+	cmpq $TERMINATOR, (%rsp, %rdi) # while TERMINATOR != stack[offset]
 	jne digit_sum_loop
 
 	call _exit
