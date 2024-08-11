@@ -40,7 +40,7 @@ int main(const int32_t argc, const char** const argv, const char* const envp)
 				carry = 0UL;
 			}
 
-			printf("Digit: %lld\n", digit);
+			// printf("Digit: %lld\n", digit);
 			stack[offset] = digit;
 			++offset;
 		}
@@ -66,7 +66,7 @@ int main(const int32_t argc, const char** const argv, const char* const envp)
 
 	do
 	{
-		printf("%lld ", stack[offset]);
+		// printf("%lld ", stack[offset]);
 		result += stack[offset];
 		++offset;
 	}

@@ -2,6 +2,7 @@
 # gdb s20
 # layout regs
 # br 77
+# r
 # the result is in %rax
 
 .global _start
